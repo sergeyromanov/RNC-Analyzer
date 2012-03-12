@@ -11,16 +11,22 @@ my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
 $main_window->configure( -menu => make_menu( $main_window ) );
 
-my $e = $main_window->new_tkx_LabEntry(-label => "Path");
-$e->g_pack;
-my $b = $main_window->new_button(
-    -text => "Done",
-    -command => sub {
-        say $e->get;
-        $main_window->g_destroy;
-    },
+my $b = $main_window->new_ttk__button(
+    -text => "Choose directory",
+    -command => \&files_dir,
 );
 $b->g_pack;
+
+sub files_dir {
+    my $dir = Tkx::tk___chooseDirectory(
+        -parent => $main_window,
+        -mustexist => 1,
+    );
+    if ($dir) {
+        chdir $dir;
+        say for glob '*.txt';
+    }
+}
 
 sub make_menu {
     my $mw = shift;
