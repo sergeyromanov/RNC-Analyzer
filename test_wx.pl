@@ -1,6 +1,8 @@
 #!/usr/bin/env perl
+use 5.014;
 use strict;
 use Tkx;
+use Tkx::LabEntry;
 
 our $PROGNAME = 'MyProgram';
 our $VERSION  = '0.1';
@@ -8,6 +10,17 @@ our $VERSION  = '0.1';
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
 $main_window->configure( -menu => make_menu( $main_window ) );
+
+my $e = $main_window->new_tkx_LabEntry(-label => "Path");
+$e->g_pack;
+my $b = $main_window->new_button(
+    -text => "Done",
+    -command => sub {
+        say $e->get;
+        $main_window->g_destroy;
+    },
+);
+$b->g_pack;
 
 sub make_menu {
     my $mw = shift;
