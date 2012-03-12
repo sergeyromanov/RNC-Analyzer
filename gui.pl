@@ -1,10 +1,14 @@
 #!/usr/bin/env perl
 use 5.014;
 use strict;
+
+use Encode qw(encode);
 use Tkx;
 use Tkx::LabEntry;
 
-our $PROGNAME = 'MyProgram';
+use RNCAnalyzer;
+
+our $PROGNAME = 'RNC Extractor';
 our $VERSION  = '0.1';
 
 my $main_window = Tkx::widget->new( '.' );
@@ -24,7 +28,15 @@ sub files_dir {
     );
     if ($dir) {
         chdir $dir;
-        say for glob '*.txt';
+        open my $fh, '>', "result.txt";
+        say $fh encode('utf8', RNCAnalyzer::analyze_file($_))
+          for glob '*.txt';
+        Tkx::tk___messageBox(
+            -parent  => $main_window,
+            -icon    => "info",
+            -title   => "Finished",
+            -message => "OK",
+        );
     }
 }
 
