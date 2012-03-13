@@ -10,6 +10,12 @@ use open ':encoding(cp1251)';
 use Encode qw(decode);
 use XML::LibXML;
 
+my %ATTRS = (
+    0 => 'gr',
+    1 => 'lex',
+    2 => 'sem',
+);
+
 sub analyze_file {
     my($fname, $attr) = @_;
 
@@ -25,7 +31,7 @@ sub analyze_file {
     # my $semf_xp = XML::LibXML::XPathExpression
     #   ->new('/w/ana[@SEMF]');
     my $attr_xp = XML::LibXML::XPathExpression
-      ->new('/w/ana/@'.$attr);
+      ->new('/w/ana/@'.$ATTRS{$attr});
 
     my($dom, $xc);
     my($parsed, $words, $lemmas);

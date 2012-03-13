@@ -24,17 +24,17 @@ $b->g_pack;
 my $attr;
 my $rb_1 = $main_window->new_ttk__radiobutton(
     -text     => 'sem',
-    -value    => 'sem',
+    -value    => 2,
     -variable => \$attr,
 );
 my $rb_2 = $main_window->new_ttk__radiobutton(
     -text     => 'lex',
-    -value    => 'lex',
+    -value    => 1,
     -variable => \$attr,
 );
 my $rb_3 = $main_window->new_ttk__radiobutton(
     -text     => 'gr',
-    -value    => 'gr',
+    -value    => 0,
     -variable => \$attr,
 );
 $rb_1->g_pack(-side => 'left');
