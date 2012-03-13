@@ -11,7 +11,7 @@ use Encode qw(decode);
 use XML::LibXML;
 
 sub analyze_file {
-    my $fname = shift;
+    my($fname, $attr) = @_;
 
     open my $fh, '<', $fname;
 
@@ -24,8 +24,8 @@ sub analyze_file {
       ->new('/w/ana[@lex="'.$lemma.'"]');
     # my $semf_xp = XML::LibXML::XPathExpression
     #   ->new('/w/ana[@SEMF]');
-    my $sem_xp = XML::LibXML::XPathExpression
-      ->new('/w/ana/@sem');
+    my $attr_xp = XML::LibXML::XPathExpression
+      ->new('/w/ana/@'.$attr);
 
     my($dom, $xc);
     my($parsed, $words, $lemmas);
@@ -63,12 +63,12 @@ sub analyze_file {
         my $xc = XML::LibXML::XPathContext->new(
             XML::LibXML->load_xml({string => $ngram->[0]->toString})
         );
-        my $left = $xc->findvalue($sem_xp);
+        my $left = $xc->findvalue($attr_xp);
         $left =~ s/^\s+//; $left =~ s/\s+$//;
         my $xc = XML::LibXML::XPathContext->new(
             XML::LibXML->load_xml({string => $ngram->[2]->toString})
         );
-        my $right = $xc->find($sem_xp);
+        my $right = $xc->find($attr_xp);
         $right =~ s/^\s+//; $right =~ s/\s+$//;
         $trigrams{(join '<>', $left, $lemma, $right)}++ if $left || $right;
     }

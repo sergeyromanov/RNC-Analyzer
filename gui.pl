@@ -9,7 +9,7 @@ use Tkx::LabEntry;
 use RNCAnalyzer;
 
 our $PROGNAME = 'RNC Extractor';
-our $VERSION  = '0.1';
+our $VERSION  = '0.11';
 
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
@@ -21,6 +21,26 @@ my $b = $main_window->new_ttk__button(
 );
 $b->g_pack;
 
+my $attr;
+my $rb_1 = $main_window->new_ttk__radiobutton(
+    -text     => 'sem',
+    -value    => 'sem',
+    -variable => \$attr,
+);
+my $rb_2 = $main_window->new_ttk__radiobutton(
+    -text     => 'lex',
+    -value    => 'lex',
+    -variable => \$attr,
+);
+my $rb_3 = $main_window->new_ttk__radiobutton(
+    -text     => 'gr',
+    -value    => 'gr',
+    -variable => \$attr,
+);
+$rb_1->g_pack(-side => 'left');
+$rb_2->g_pack(-side => 'left');
+$rb_3->g_pack(-side => 'left');
+
 sub files_dir {
     my $dir = Tkx::tk___chooseDirectory(
         -parent => $main_window,
@@ -29,7 +49,7 @@ sub files_dir {
     if ($dir) {
         chdir $dir;
         open my $fh, '>', "result.txt";
-        say $fh encode('utf8', RNCAnalyzer::analyze_file($_))
+        say $fh encode('utf8', RNCAnalyzer::analyze_file($_, $attr))
           for glob '*.txt';
         Tkx::tk___messageBox(
             -parent  => $main_window,
