@@ -9,7 +9,7 @@ use Tkx::LabEntry;
 use RNCAnalyzer;
 
 our $PROGNAME = 'RNC Extractor';
-our $VERSION  = '0.11';
+our $VERSION  = '0.12';
 
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
