@@ -1,4 +1,3 @@
-#!/usr/bin/env perl
 package RNCAnalyzer;
 
 use strict;
@@ -37,7 +36,7 @@ sub analyze_file {
     my($parsed, $words, $lemmas);
     my $result;
     while (<$fh>) {
-        s/^\s+//; s/\s+$//;
+        s/\s+$//;
         s/^[^<]+//;
         if (/^<p\s*>/ && /<\/p>$/) {
             $parsed++;
