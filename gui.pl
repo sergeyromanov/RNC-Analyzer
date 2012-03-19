@@ -21,7 +21,7 @@ my $b = $main_window->new_ttk__button(
 );
 $b->g_pack;
 
-my $attr;
+my $attr = 2; # default is 'sem'
 my $rb_1 = $main_window->new_ttk__radiobutton(
     -text     => 'sem',
     -value    => 2,
