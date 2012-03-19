@@ -16,13 +16,11 @@ my %ATTRS = (
 );
 
 sub analyze_file {
-    my($fname, $attr) = @_;
+    my($fname, $attr, $lemma) = @_;
 
     open my $fh, '<', $fname;
 
     my %trigrams;
-    my $lemma = (split '\.', $fname)[0];
-    $lemma = decode 'cp1251', $lemma;
     my $word_xp = XML::LibXML::XPathExpression
       ->new('/p/se/w');
     my $lemma_xp = XML::LibXML::XPathExpression

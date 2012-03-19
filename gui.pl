@@ -2,9 +2,10 @@
 use 5.014;
 use strict;
 
-use Encode qw(encode);
+use Encode qw(encode decode);
 use Tkx;
 use Tkx::LabEntry;
+use YAML qw(LoadFile);
 
 use RNCAnalyzer;
 
@@ -47,16 +48,27 @@ sub files_dir {
         -mustexist => 1,
     );
     if ($dir) {
-        chdir $dir;
+        my $dict_file = $dir =~ s{(?<=/)[^/]+$}{translate.yml}r;
+        my $dict = LoadFile($dict_file);
         open my $fh, '>', "result.txt";
-        say $fh encode('utf8', RNCAnalyzer::analyze_file($_, $attr))
-          for glob '*.txt';
+        chdir $dir;
+        for my $fname (glob '*.txt') {
+            my $lemma = (split '\.', $fname)[0];
+            if ($dict->{$lemma}) {
+                $lemma = $dict->{$lemma};
+            }
+            else {
+                $lemma = decode 'cp1251', $lemma;
+            }
+            say $fh encode('utf8', RNCAnalyzer::analyze_file($_, $attr, $lemma))
+        }
         Tkx::tk___messageBox(
             -parent  => $main_window,
             -icon    => "info",
             -title   => "Finished",
             -message => "OK",
         );
+        exit;
     }
 }
 
