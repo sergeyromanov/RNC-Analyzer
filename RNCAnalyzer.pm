@@ -9,21 +9,18 @@ use open ':encoding(cp1251)';
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
 
-my %ATTRS = (
-    0 => 'gr',
-    1 => 'lex',
-    2 => 'sem',
-);
-
 sub analyze_file {
-    my($fname, $attr, $lemma) = @_;
+    my($fname, $ui_params, $lemma) = @_;
 
     open my $fh, '<', $fname;
     my %trigrams;
     my $lemma_xp = XML::LibXML::XPathExpression
       ->new('/w/ana[@lex="'.$lemma.'"]');
-    my $attr_xp = XML::LibXML::XPathExpression
-      ->new('/w/ana/@'.$ATTRS{$attr});
+    my $attr_xp = {
+        map {
+            $_ => XML::LibXML::XPathExpression->new('/w/ana/@'.$_)
+        } grep {$ui_params->{'attr'}{$_}} keys $ui_params->{'attr'}
+    };
     my $word_xp = [
         XML::LibXML::XPathExpression->new('/p/w'),
         XML::LibXML::XPathExpression->new('/p/se/w'),
@@ -68,17 +65,28 @@ sub analyze_file {
         }
     }
     for my $ngram (@$result) {
-        my $xc = XML::LibXML::XPathContext->new(
-            XML::LibXML->load_xml({string => $ngram->[0]->toString})
-        );
-        my $left = $xc->findvalue($attr_xp);
-        $left =~ s/^\s+//; $left =~ s/\s+$//;
-        my $xc = XML::LibXML::XPathContext->new(
-            XML::LibXML->load_xml({string => $ngram->[2]->toString})
-        );
-        my $right = $xc->find($attr_xp);
-        $right =~ s/^\s+//; $right =~ s/\s+$//;
-        $trigrams{(join '<>', $left, $lemma, $right)}++ if $left || $right;
+        my(@left_attrs, @right_attrs);
+        for my $attr_type (sort keys $attr_xp) {
+            my $xc = XML::LibXML::XPathContext->new(
+                XML::LibXML->load_xml({string => $ngram->[0]->toString})
+            );
+            my $left = $xc->findvalue($attr_xp->{$attr_type});
+            $left =~ s/^\s+//; $left =~ s/\s+$//;
+            push @left_attrs, "[$attr_type](".$left.")";
+            my $xc = XML::LibXML::XPathContext->new(
+                XML::LibXML->load_xml({string => $ngram->[2]->toString})
+            );
+            my $right = $xc->find($attr_xp->{$attr_type});
+            $right =~ s/^\s+//; $right =~ s/\s+$//;
+            push @right_attrs, "[$attr_type](".$right.")";
+        }
+        if (@left_attrs || @right_attrs) {
+            my $key = join '<>',
+              (join '', @left_attrs),
+              $lemma,
+              (join '', @right_attrs);
+            $trigrams{$key}++;
+        }
     }
     # say "Total: $., parsed: $parsed, lemmas: $lemmas";
     my @sorted_keys = sort {$trigrams{$b} <=> $trigrams{$a}} keys %trigrams;

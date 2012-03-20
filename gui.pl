@@ -22,25 +22,29 @@ my $b = $main_window->new_ttk__button(
 );
 $b->g_pack;
 
-my $attr = 2; # default is 'sem'
-my $rb_1 = $main_window->new_ttk__radiobutton(
+my %UI = (
+    attr => { sem => 1 },
+);
+
+my $cb_1 = $main_window->new_ttk__checkbutton(
     -text     => 'sem',
-    -value    => 2,
-    -variable => \$attr,
+    -variable => \$UI{'attr'}{'sem'},
+    -onvalue  => 1,
 );
-my $rb_2 = $main_window->new_ttk__radiobutton(
+my $cb_2 = $main_window->new_ttk__checkbutton(
     -text     => 'lex',
-    -value    => 1,
-    -variable => \$attr,
+    -variable => \$UI{'attr'}{'lex'},
+    -onvalue  => 1,
 );
-my $rb_3 = $main_window->new_ttk__radiobutton(
+my $cb_3 = $main_window->new_ttk__checkbutton(
     -text     => 'gr',
-    -value    => 0,
-    -variable => \$attr,
+    -variable => \$UI{'attr'}{'gr'},
+    -onvalue  => 1,
 );
-$rb_1->g_pack(-side => 'left');
-$rb_2->g_pack(-side => 'left');
-$rb_3->g_pack(-side => 'left');
+
+$cb_1->g_pack(-side => 'left');
+$cb_2->g_pack(-side => 'left');
+$cb_3->g_pack(-side => 'left');
 
 sub files_dir {
     my $dir = Tkx::tk___chooseDirectory(
@@ -61,7 +65,7 @@ sub files_dir {
             else {
                 $lemma = decode 'cp1251', $lemma;
             }
-            say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, $attr, $lemma));
+            say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, \%UI, $lemma));
         }
         Tkx::tk___messageBox(
             -parent  => $main_window,
