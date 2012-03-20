@@ -6,6 +6,7 @@ use utf8;
 
 use open ':encoding(cp1251)';
 
+use List::Util qw(min);
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
 
@@ -93,8 +94,8 @@ sub analyze_file {
     my $result;
     $result .=
       join '', $lemma, ' (out of ', scalar (keys %trigrams), ')', $/;
-    $result .=
-      join '', $_, ' => ', $trigrams{$_}, $/ for @sorted_keys[0..10];
+    $result .= join '', $_, ' => ', $trigrams{$_}, $/
+      for @sorted_keys[0..min($#sorted_keys, $ui_params->{'top_output'}-1)];
     $result .= "\n\n";
 
     return $result;

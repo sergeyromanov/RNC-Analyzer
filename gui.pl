@@ -32,8 +32,18 @@ my $pbar = $main_window->new_ttk__progressbar(
 $pbar->g_pack;
 
 my %UI = (
-    attr => { sem => 1 },
+    attr       => { sem => 1 },
+    top_output => 10,
 );
+
+my $label = $main_window->new_ttk__label(-text => "Number of top results:");
+$label->g_pack;
+
+my $top_output = $main_window->new_ttk__entry(
+    -textvariable => \$UI{'top_output'},
+    -width => 7,
+);
+$top_output->g_pack;
 
 my $cb_1 = $main_window->new_ttk__checkbutton(
     -text     => 'sem',
