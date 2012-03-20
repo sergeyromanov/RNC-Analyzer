@@ -10,7 +10,7 @@ use YAML qw(LoadFile);
 use RNCAnalyzer;
 
 our $PROGNAME = 'RNC Extractor';
-our $VERSION  = '0.13';
+our $VERSION  = '0.14';
 
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
@@ -21,6 +21,15 @@ my $b = $main_window->new_ttk__button(
     -command => \&files_dir,
 );
 $b->g_pack;
+
+my $progress = 0;
+my $pbar = $main_window->new_ttk__progressbar(
+    -orient => 'horizontal',
+    -length => 100,
+    -mode   => 'determinate',
+    -value => $progress,
+);
+$pbar->g_pack;
 
 my %UI = (
     attr => { sem => 1 },
@@ -57,7 +66,10 @@ sub files_dir {
         $dict = LoadFile($dict_file) if -e $dict_file;
         open my $fh, '>', "result.txt";
         chdir $dir;
-        for my $fname (glob '*.txt') {
+        my @files = glob '*.txt';
+        $pbar->configure(-maximum => @files + 1);
+        $pbar->start();
+        for my $fname (@files) {
             my $lemma = (split '\.', $fname)[0];
             if ($dict && $dict->{$lemma}) {
                 $lemma = $dict->{$lemma};
@@ -66,7 +78,10 @@ sub files_dir {
                 $lemma = decode 'cp1251', $lemma;
             }
             say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, \%UI, $lemma));
+            $progress++;
+            Tkx::update();
         }
+        $pbar->stop();
         Tkx::tk___messageBox(
             -parent  => $main_window,
             -icon    => "info",
