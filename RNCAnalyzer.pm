@@ -7,7 +7,7 @@ use utf8;
 use open ':encoding(cp1251)';
 
 use Try::Tiny qw(try catch);
-use XML::LibXML;
+use XML::LibXML ();
 
 my %ATTRS = (
     0 => 'gr',
@@ -42,32 +42,30 @@ sub analyze_file {
             $line =~ s/^/<p>/;
             $line =~ s/$/<\/p>/;
         }
-        # if ($line =~ m/^<(p|se|w)\s*>/) {
-            my($dom, $xc);
-            $parsed++;
-            try { $dom = XML::LibXML->load_xml({string => $line}) };
-            $xc = XML::LibXML::XPathContext->new($dom);
-            my @nodes;
-            XP: for my $xp (@$word_xp) {
-                try { @nodes = $xc->findnodes($xp) };
-                last XP if scalar @nodes > 0;
-            }
-            next unless scalar @nodes > 0;
+        my($dom, $xc);
+        $parsed++;
+        try { $dom = XML::LibXML->load_xml({string => $line}) };
+        $xc = XML::LibXML::XPathContext->new($dom);
+        my @nodes;
+        XP: for my $xp (@$word_xp) {
+            try { @nodes = $xc->findnodes($xp) };
+            last XP if scalar @nodes > 0;
+        }
+        next unless scalar @nodes > 0;
 
-            for my $i (0..$#nodes) {
-                # TODO: more natural way?
-                my $xcl = XML::LibXML::XPathContext->new(
-                    XML::LibXML->load_xml({string => $nodes[$i]->toString})
-                );
-                if (my @lemmas = $xcl->findnodes($lemma_xp)) {
-                    # check last in not empty; what about first ($i=0)?
-                    if ($nodes[$i-1] && $nodes[$i+1]) {
-                        push @$result, [@nodes[$i-1..$i+1]];
-                        $lemmas += scalar @lemmas;
-                    }
+        for my $i (0..$#nodes) {
+            # TODO: more natural way?
+            my $xcl = XML::LibXML::XPathContext->new(
+                XML::LibXML->load_xml({string => $nodes[$i]->toString})
+            );
+            if (my @lemmas = $xcl->findnodes($lemma_xp)) {
+                # check last in not empty; what about first ($i=0)?
+                if ($nodes[$i-1] && $nodes[$i+1]) {
+                    push @$result, [@nodes[$i-1..$i+1]];
+                    $lemmas += scalar @lemmas;
                 }
             }
-        # }
+        }
     }
     for my $ngram (@$result) {
         my $xc = XML::LibXML::XPathContext->new(
