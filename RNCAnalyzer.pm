@@ -6,7 +6,7 @@ use utf8;
 
 use open ':encoding(cp1251)';
 
-use Encode qw(decode);
+use Try::Tiny qw(try catch);
 use XML::LibXML;
 
 my %ATTRS = (
@@ -19,28 +19,41 @@ sub analyze_file {
     my($fname, $attr, $lemma) = @_;
 
     open my $fh, '<', $fname;
-
     my %trigrams;
-    my $word_xp = XML::LibXML::XPathExpression
-      ->new('/p/se/w');
     my $lemma_xp = XML::LibXML::XPathExpression
       ->new('/w/ana[@lex="'.$lemma.'"]');
-    # my $semf_xp = XML::LibXML::XPathExpression
-    #   ->new('/w/ana[@SEMF]');
     my $attr_xp = XML::LibXML::XPathExpression
       ->new('/w/ana/@'.$ATTRS{$attr});
+    my $word_xp = [
+        XML::LibXML::XPathExpression->new('/p/w'),
+        XML::LibXML::XPathExpression->new('/p/se/w'),
+        XML::LibXML::XPathExpression->new('/p/se/st/w'),
+    ];
 
-    my($dom, $xc);
     my($parsed, $words, $lemmas);
     my $result;
-    while (<$fh>) {
-        s/\s+$//;
-        s/^[^<]+//;
-        if (/^<p\s*>/ && /<\/p>$/) {
+    while (my $line = <$fh>) {
+        $line =~ s/[^>]+$//;
+        $line =~ s/^[^<]+//;
+        # some files have closing parts for singular XHTML tags;
+        # we need to remove those parts so parser could handle tags
+        $line =~ s/<\/ana>//g;
+        unless ($line =~ m/^<p\s*>/) {
+            $line =~ s/^/<p>/;
+            $line =~ s/$/<\/p>/;
+        }
+        # if ($line =~ m/^<(p|se|w)\s*>/) {
+            my($dom, $xc);
             $parsed++;
-            $dom = XML::LibXML->load_xml({string => $_});
+            try { $dom = XML::LibXML->load_xml({string => $line}) };
             $xc = XML::LibXML::XPathContext->new($dom);
-            my @nodes = $xc->findnodes($word_xp);
+            my @nodes;
+            XP: for my $xp (@$word_xp) {
+                try { @nodes = $xc->findnodes($xp) };
+                last XP if scalar @nodes > 0;
+            }
+            next unless scalar @nodes > 0;
+
             for my $i (0..$#nodes) {
                 # TODO: more natural way?
                 my $xcl = XML::LibXML::XPathContext->new(
@@ -53,14 +66,8 @@ sub analyze_file {
                         $lemmas += scalar @lemmas;
                     }
                 }
-                # if (my @lemmas = $xcl->findnodes($semf_xp)) {
-                #     if ($nodes[$i-1] && $nodes[$i+1]) {
-                #         push @$result, [@nodes[$i-1..$i+1]];
-                #         $lemmas += scalar @lemmas;
-                #     }
-                # }
             }
-        }
+        # }
     }
     for my $ngram (@$result) {
         my $xc = XML::LibXML::XPathContext->new(
