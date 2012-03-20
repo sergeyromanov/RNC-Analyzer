@@ -10,7 +10,7 @@ use YAML qw(LoadFile);
 use RNCAnalyzer;
 
 our $PROGNAME = 'RNC Extractor';
-our $VERSION  = '0.12';
+our $VERSION  = '0.13';
 
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
@@ -49,18 +49,19 @@ sub files_dir {
     );
     if ($dir) {
         my $dict_file = $dir =~ s{(?<=/)[^/]+$}{translate.yml}r;
-        my $dict = LoadFile($dict_file);
+        my $dict;
+        $dict = LoadFile($dict_file) if -e $dict_file;
         open my $fh, '>', "result.txt";
         chdir $dir;
         for my $fname (glob '*.txt') {
             my $lemma = (split '\.', $fname)[0];
-            if ($dict->{$lemma}) {
+            if ($dict && $dict->{$lemma}) {
                 $lemma = $dict->{$lemma};
             }
             else {
                 $lemma = decode 'cp1251', $lemma;
             }
-            say $fh encode('utf8', RNCAnalyzer::analyze_file($_, $attr, $lemma))
+            say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, $attr, $lemma));
         }
         Tkx::tk___messageBox(
             -parent  => $main_window,
