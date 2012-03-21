@@ -10,6 +10,24 @@ use List::Util qw(min);
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
 
+my $word_xp = [
+    XML::LibXML::XPathExpression->new('/p/w'),
+    XML::LibXML::XPathExpression->new('/p/se/w'),
+    XML::LibXML::XPathExpression->new('/p/se/st/w'),
+];
+
+sub get_words {
+    my $xc = shift;
+
+    my @words;
+    XP: for my $xp (@$word_xp) {
+        try { @words = $xc->findnodes($xp) };
+        last XP if scalar @words > 0;
+    }
+
+    return @words;
+}
+
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
@@ -22,11 +40,6 @@ sub analyze_file {
             $_ => XML::LibXML::XPathExpression->new('/w/ana/@'.$_)
         } grep {$ui_params->{'attr'}{$_}} keys $ui_params->{'attr'}
     };
-    my $word_xp = [
-        XML::LibXML::XPathExpression->new('/p/w'),
-        XML::LibXML::XPathExpression->new('/p/se/w'),
-        XML::LibXML::XPathExpression->new('/p/se/st/w'),
-    ];
 
     my($parsed, $words, $lemmas);
     my $result;
@@ -44,11 +57,9 @@ sub analyze_file {
         $parsed++;
         try { $dom = XML::LibXML->load_xml({string => $line}) };
         $xc = XML::LibXML::XPathContext->new($dom);
-        my @nodes;
-        XP: for my $xp (@$word_xp) {
-            try { @nodes = $xc->findnodes($xp) };
-            last XP if scalar @nodes > 0;
-        }
+
+        my @nodes = get_words($xc);
+
         next unless scalar @nodes > 0;
 
         for my $i (0..$#nodes) {
