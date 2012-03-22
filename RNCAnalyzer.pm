@@ -17,8 +17,11 @@ my $word_xp = [
 ];
 
 sub get_words {
-    my $xc = shift;
+    my $xml = shift;
 
+    my($dom, $xc);
+    try { $dom = XML::LibXML->load_xml({string => $xml}) };
+    $xc = XML::LibXML::XPathContext->new($dom);
     my @words;
     XP: for my $xp (@$word_xp) {
         try { @words = $xc->findnodes($xp) };
@@ -61,12 +64,8 @@ sub analyze_file {
     my $result;
     while (my $line = <$fh>) {
         $line = prepare($line);
-        my($dom, $xc);
         $parsed++;
-        try { $dom = XML::LibXML->load_xml({string => $line}) };
-        $xc = XML::LibXML::XPathContext->new($dom);
-
-        my @nodes = get_words($xc);
+        my @nodes = get_words($line);
 
         next unless scalar @nodes > 0;
 
