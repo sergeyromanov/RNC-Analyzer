@@ -28,6 +28,22 @@ sub get_words {
     return @words;
 }
 
+sub prepare {
+    my $line = shift;
+
+    $line =~ s/[^>]+$//;
+    $line =~ s/^[^<]+//;
+    # some files have closing parts for singular XHTML tags;
+    # we need to remove those parts so parser could handle tags
+    $line =~ s/<\/ana>//g;
+    unless ($line =~ m/^<p\s*>/) {
+        $line =~ s/^/<p>/;
+        $line =~ s/$/<\/p>/;
+    }
+
+    return $line;
+}
+
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
@@ -44,15 +60,7 @@ sub analyze_file {
     my($parsed, $words, $lemmas);
     my $result;
     while (my $line = <$fh>) {
-        $line =~ s/[^>]+$//;
-        $line =~ s/^[^<]+//;
-        # some files have closing parts for singular XHTML tags;
-        # we need to remove those parts so parser could handle tags
-        $line =~ s/<\/ana>//g;
-        unless ($line =~ m/^<p\s*>/) {
-            $line =~ s/^/<p>/;
-            $line =~ s/$/<\/p>/;
-        }
+        $line = prepare($line);
         my($dom, $xc);
         $parsed++;
         try { $dom = XML::LibXML->load_xml({string => $line}) };
