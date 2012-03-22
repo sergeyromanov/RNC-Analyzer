@@ -16,6 +16,20 @@ my $word_xp = [
     XML::LibXML::XPathExpression->new('/p/se/st/w'),
 ];
 
+sub has_lemma {
+    my($node, $xpath) = @_;
+
+    # TODO: more natural way?
+    my $xcl = XML::LibXML::XPathContext->new(
+        XML::LibXML->load_xml({string => $node->toString})
+    );
+    my @lemmas = $xcl->findnodes($xpath);
+
+    return scalar @lemmas > 0
+      ? 1
+      : 0
+}
+
 sub get_words {
     my $xml = shift;
 
@@ -70,15 +84,11 @@ sub analyze_file {
         next unless scalar @nodes > 0;
 
         for my $i (0..$#nodes) {
-            # TODO: more natural way?
-            my $xcl = XML::LibXML::XPathContext->new(
-                XML::LibXML->load_xml({string => $nodes[$i]->toString})
-            );
-            if (my @lemmas = $xcl->findnodes($lemma_xp)) {
+            if (has_lemma($nodes[$i], $lemma_xp)) {
                 # check last in not empty; what about first ($i=0)?
                 if ($nodes[$i-1] && $nodes[$i+1]) {
                     push @$result, [@nodes[$i-1..$i+1]];
-                    $lemmas += scalar @lemmas;
+                    $lemmas++;
                 }
             }
         }
