@@ -6,8 +6,12 @@ use utf8;
 use open ':encoding(cp1251)';
 
 use List::Util qw(min);
+use Log::Log4perl ();
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
+
+Log::Log4perl->init("log4perl.conf");
+my $log = Log::Log4perl->get_logger("RNCAnalyzer");
 
 my $word_xp = [
     XML::LibXML::XPathExpression->new('/p/w'),
