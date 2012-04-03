@@ -64,6 +64,43 @@ sub prepare {
     return $line;
 }
 
+sub drop_markup {
+    return $_[0] =~ s/<.+?>//gr
+}
+
+sub get_raw_contexts {
+    my($str, $width) = @_;
+
+    my $word = '<w>.*?<\/w>';
+    my $re_string = join '[^<]*', ($word)x$width;
+    my $re = qr/$re_string/;
+    $str =~ s/<\/?se>//g;
+
+    return $str =~ m!(?=($re))!g;
+}
+
+sub filter_on_punctuation {
+    my $context = shift;
+
+    $context = drop_markup($context);
+    if ($context =~ /\s("?\.)\s/) {
+
+        return 0;
+    }
+    else { return 1 }
+}
+
+sub has_lemma_re {
+    my($context, $lemma) = @_;
+
+    if ($context =~ m!</w>.*?$lemma!) {
+
+        return 1;
+    }
+    else { return 0 }
+
+}
+
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
