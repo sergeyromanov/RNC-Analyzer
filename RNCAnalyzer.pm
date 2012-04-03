@@ -1,6 +1,5 @@
 package RNCAnalyzer;
 
-use strict;
 use 5.014;
 use utf8;
 

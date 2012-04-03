@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
 use 5.014;
-use strict;
 
 use Encode qw(encode decode);
 use Tkx;
