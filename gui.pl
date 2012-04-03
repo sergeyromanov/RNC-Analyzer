@@ -9,60 +9,86 @@ use YAML qw(LoadFile);
 use RNCAnalyzer;
 
 our $PROGNAME = 'RNC Extractor';
-our $VERSION  = '0.14';
+our $VERSION  = '0.2';
 
 my $main_window = Tkx::widget->new( '.' );
 $main_window->g_wm_title( 'Main Window' );
 $main_window->configure( -menu => make_menu( $main_window ) );
 
-my $b = $main_window->new_ttk__button(
+my $content = $main_window->new_ttk__frame;
+$content->g_grid(-row => 0, -column => 0);
+
+my $b = $content->new_ttk__button(
     -text => "Choose directory",
     -command => \&files_dir,
 );
-$b->g_pack;
+$b->g_grid(-row => 0, -column => 0);
 
 my $progress = 0;
-my $pbar = $main_window->new_ttk__progressbar(
+my $pbar = $content->new_ttk__progressbar(
     -orient => 'horizontal',
     -length => 100,
     -mode   => 'determinate',
     -value => $progress,
 );
-$pbar->g_pack;
+$pbar->g_grid(-row => 1, -column => 0);
 
 my %UI = (
     attr       => { sem => 1 },
     top_output => 10,
+    window     => { left => 1, right => 1 },
 );
 
-my $label = $main_window->new_ttk__label(-text => "Number of top results:");
-$label->g_pack;
+my $res_label = $content->new_ttk__label(
+    -text => "Number of top results:"
+);
+$res_label->g_grid(-row => 2, -column => 0);
 
-my $top_output = $main_window->new_ttk__entry(
+my $top_output = $content->new_ttk__entry(
     -textvariable => \$UI{'top_output'},
     -width => 7,
 );
-$top_output->g_pack;
+$top_output->g_grid(-row => 3, -column => 0);
 
-my $cb_1 = $main_window->new_ttk__checkbutton(
+my $attrs_frame = $content->new_ttk__frame;
+$attrs_frame->g_grid(-row => 4, -column => 0);
+my $cb_1 = $attrs_frame->new_ttk__checkbutton(
     -text     => 'sem',
     -variable => \$UI{'attr'}{'sem'},
     -onvalue  => 1,
 );
-my $cb_2 = $main_window->new_ttk__checkbutton(
+my $cb_2 = $attrs_frame->new_ttk__checkbutton(
     -text     => 'lex',
     -variable => \$UI{'attr'}{'lex'},
     -onvalue  => 1,
 );
-my $cb_3 = $main_window->new_ttk__checkbutton(
+my $cb_3 = $attrs_frame->new_ttk__checkbutton(
     -text     => 'gr',
     -variable => \$UI{'attr'}{'gr'},
     -onvalue  => 1,
 );
+$cb_1->g_grid(-row => 0, -column => 0);
+$cb_2->g_grid(-row => 0, -column => 1);
+$cb_3->g_grid(-row => 0, -column => 2);
 
-$cb_1->g_pack(-side => 'left');
-$cb_2->g_pack(-side => 'left');
-$cb_3->g_pack(-side => 'left');
+my $db_l = $content->new_ttk__combobox(
+    -textvariable => \$UI{'window'}{'left'},
+    -values  => [0, 1, 2, 3, 4],
+);
+my $db_r = $content->new_ttk__combobox(
+    -textvariable => \$UI{'window'}{'right'},
+    -values  => [0, 1, 2, 3, 4],
+);
+my $lw_label = $content->new_ttk__label(
+    -text => "Left window:"
+);
+my $rw_label = $content->new_ttk__label(
+    -text => "Right window:"
+);
+$lw_label->g_grid(-row => 5, -column => 0);
+$db_l->g_grid(-row => 6, -column => 0);
+$rw_label->g_grid(-row => 7, -column => 0);
+$db_r->g_grid(-row => 8, -column => 0);
 
 sub files_dir {
     my $dir = Tkx::tk___chooseDirectory(
