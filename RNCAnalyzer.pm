@@ -1,11 +1,10 @@
 package RNCAnalyzer;
 
 use 5.014;
-use utf8;
 
 use open ':encoding(cp1251)';
 
-use List::Util qw(min);
+use List::Util qw(sum);
 use Log::Log4perl ();
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
@@ -79,94 +78,113 @@ sub get_raw_contexts {
     return $str =~ m!(?=($re))!g;
 }
 
-sub filter_on_punctuation {
+sub no_stop_punctuation {
     my $context = shift;
 
     $context = drop_markup($context);
-    if ($context =~ /\s("?\.)\s/) {
+    if ($context =~ /("?\.|!)\s/) {
 
         return 0;
     }
     else { return 1 }
 }
 
-sub has_lemma_re {
-    my($context, $lemma) = @_;
+sub is_target_ngram {
+    my($context, $lemma, $lw, $rw) = @_;
 
-    if ($context =~ m!</w>.*?$lemma!) {
+    if ($context =~ m!$lemma!) {
+        my $word = '<w>.*?<\/w>';
+        my $left_window = join '[^<]*', ($word)x$lw;
+        my $right_window = join '[^<]*', ($word)x$rw;
+        my $re = qr{$left_window.+?<w>.+?$lemma.+?</w>.+?$right_window};
 
-        return 1;
+        return $context =~ m!$re!;
     }
     else { return 0 }
+}
 
+sub get_words_re {
+    return $_[0] =~ m!(<w>.*?<\/w>)!g;
+}
+
+sub xpath_search {
+    my($str, $xpath) = @_;
+
+    my $xc = XML::LibXML::XPathContext->new(
+        XML::LibXML->load_xml({string => $str})
+    );
+    my $value = $xc->findvalue($xpath);
+    $value =~ s/^\s+//; $value =~ s/\s+$//;
+
+    return $value;
+}
+
+sub window_stat {
+    my($stat) = @_;
+
+    my $result;
+    # each element in @stat is a hash of hashes
+    for my $i (0..$#$stat) {
+        my $attrs = $stat->[$i];
+        for my $a_type (sort keys $attrs) {
+            my $a_vals = $attrs->{$a_type};
+            my @vals = sort {$a_vals->{$b} <=> $a_vals->{$a}} keys $a_vals;
+            $result .= join '', "\tmax $a_type in position ",
+              $i+1, ": ($vals[0]) => $a_vals->{$vals[0]}\n";
+        }
+    }
+
+    return $result;
 }
 
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
     open my $fh, '<', $fname;
-    my %trigrams;
-    my $lemma_xp = XML::LibXML::XPathExpression
-      ->new('/w/ana[@lex="'.$lemma.'"]');
+
     my $attr_xp = {
         map {
             $_ => XML::LibXML::XPathExpression->new('/w/ana/@'.$_)
         } grep {$ui_params->{'attr'}{$_}} keys $ui_params->{'attr'}
     };
 
-    my($parsed, $words, $lemmas);
-    my $result;
+    my($lw, $rw) = @{$ui_params->{'window'}}{qw<left right>};
+    my $total_width = sum($lw, $rw, 1);
+
+    my @ngrams;
     while (my $line = <$fh>) {
-        $line = prepare($line);
-        $parsed++;
-        my @nodes = get_words($line);
+        my @contexts = get_raw_contexts($line, $total_width);
+        @contexts = grep no_stop_punctuation($_), @contexts;
+        push @ngrams, grep is_target_ngram($_, $lemma, $lw, $rw), @contexts;
+    }
 
-        next unless scalar @nodes > 0;
+    my $stat;
+    my $window_attrs = sub {
+        my($xpath, $window, @words) = @_;
 
-        for my $i (0..$#nodes) {
-            if (has_lemma($nodes[$i], $lemma_xp)) {
-                # check last in not empty; what about first ($i=0)?
-                if ($nodes[$i-1] && $nodes[$i+1]) {
-                    push @$result, [@nodes[$i-1..$i+1]];
-                    $lemmas++;
-                }
+        for my $i (0..$#words) {
+            for my $attr_type (sort keys $xpath) {
+                my $value = xpath_search($words[$i], $xpath->{$attr_type});
+                $stat->{$window}[$i]{$attr_type}{$value}++;
             }
         }
-    }
-    for my $ngram (@$result) {
-        my(@left_attrs, @right_attrs);
-        for my $attr_type (sort keys $attr_xp) {
-            my $xc = XML::LibXML::XPathContext->new(
-                XML::LibXML->load_xml({string => $ngram->[0]->toString})
-            );
-            my $left = $xc->findvalue($attr_xp->{$attr_type});
-            $left =~ s/^\s+//; $left =~ s/\s+$//;
-            push @left_attrs, "[$attr_type](".$left.")";
-            my $xc = XML::LibXML::XPathContext->new(
-                XML::LibXML->load_xml({string => $ngram->[2]->toString})
-            );
-            my $right = $xc->find($attr_xp->{$attr_type});
-            $right =~ s/^\s+//; $right =~ s/\s+$//;
-            push @right_attrs, "[$attr_type](".$right.")";
-        }
-        if (@left_attrs || @right_attrs) {
-            my $key = join '<>',
-              (join '', @left_attrs),
-              $lemma,
-              (join '', @right_attrs);
-            $trigrams{$key}++;
-        }
-    }
-    # say "Total: $., parsed: $parsed, lemmas: $lemmas";
-    my @sorted_keys = sort {$trigrams{$b} <=> $trigrams{$a}} keys %trigrams;
-    my $result;
-    $result .=
-      join '', $lemma, ' (out of ', scalar (keys %trigrams), ')', $/;
-    $result .= join '', $_, ' => ', $trigrams{$_}, $/
-      for @sorted_keys[0..min($#sorted_keys, $ui_params->{'top_output'}-1)];
-    $result .= "\n\n";
+    };
 
-    return $result;
+    for my $ngram (@ngrams) {
+        my @words = get_words_re($ngram);
+        next unless scalar(@words) != $total_width;
+        $window_attrs->($attr_xp, 'left', @words[0..$lw-1]);
+        $window_attrs->($attr_xp, 'right', @words[$lw+1..$#words]);
+    }
+
+    my $res = "$lemma\n";
+    $res .= "Left window:\n";
+    $res .= window_stat($stat->{'left'});
+    $res .= "Right window:\n";
+    $res .= window_stat($stat->{'right'});
+    $res .= "\n";
+
+    return $res;
 }
 
 1;
