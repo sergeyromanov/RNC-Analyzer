@@ -4,6 +4,7 @@ use 5.014;
 
 use open ':encoding(cp1251)';
 
+use Data::Dumper;
 use List::Util qw(sum);
 use Log::Log4perl ();
 use Try::Tiny qw(try catch);
@@ -145,10 +146,10 @@ sub analyze_file {
     my $attr_xp = {
         map {
             $_ => XML::LibXML::XPathExpression->new('/w/ana/@'.$_)
-        } grep {$ui_params->{'attr'}{$_}} keys $ui_params->{'attr'}
+        } grep {$ui_params->{attr}{$_}} keys $ui_params->{attr}
     };
 
-    my($lw, $rw) = @{$ui_params->{'window'}}{qw<left right>};
+    my($lw, $rw) = @{$ui_params->{window}}{qw<left right>};
     my $total_width = sum($lw, $rw, 1);
 
     my @ngrams;
@@ -172,16 +173,16 @@ sub analyze_file {
 
     for my $ngram (@ngrams) {
         my @words = get_words_re($ngram);
-        next unless scalar(@words) != $total_width;
+        next unless scalar(@words) == $total_width;
         $window_attrs->($attr_xp, 'left', @words[0..$lw-1]);
         $window_attrs->($attr_xp, 'right', @words[$lw+1..$#words]);
     }
 
     my $res = "$lemma\n";
     $res .= "Left window:\n";
-    $res .= window_stat($stat->{'left'});
+    $res .= window_stat($stat->{left});
     $res .= "Right window:\n";
-    $res .= window_stat($stat->{'right'});
+    $res .= window_stat($stat->{right});
     $res .= "\n";
 
     return $res;

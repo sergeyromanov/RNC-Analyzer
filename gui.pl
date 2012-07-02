@@ -97,6 +97,7 @@ sub files_dir {
     );
     if ($dir) {
         my $dict_file = $dir =~ s{(?<=/)[^/]+$}{translate.yml}r;
+        $dict_file //= 'translate.yml';
         my $dict;
         $dict = LoadFile($dict_file) if -e $dict_file;
         open my $fh, '>', "result.txt";
