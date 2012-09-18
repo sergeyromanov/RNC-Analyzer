@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use 5.014;
 
+use Cwd qw(cwd);
 use Encode qw(encode decode);
 use Tkx;
 use Tkx::LabEntry;
@@ -96,8 +97,7 @@ sub files_dir {
         -mustexist => 1,
     );
     if ($dir) {
-        my $dict_file = $dir =~ s{(?<=/)[^/]+$}{translate.yml}r;
-        $dict_file //= 'translate.yml';
+        my $dict_file = cwd . '/translate.yml';
         my $dict;
         $dict = LoadFile($dict_file) if -e $dict_file;
         open my $fh, '>', "result.txt";
