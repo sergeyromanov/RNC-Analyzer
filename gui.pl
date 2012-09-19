@@ -49,7 +49,7 @@ my $top_output = $content->new_ttk__entry(
     -textvariable => \$UI{'top_output'},
     -width => 7,
 );
-# $top_output->g_grid(-row => 3, -column => 0);
+$top_output->g_grid(-row => 3, -column => 0);
 
 my $attrs_frame = $content->new_ttk__frame;
 $attrs_frame->g_grid(-row => 4, -column => 0);
