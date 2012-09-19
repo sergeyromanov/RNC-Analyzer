@@ -171,19 +171,55 @@ sub analyze_file {
         }
     };
 
+    my $bi_stat;
+    my $bigrams = sub {
+        my($xpath, @words) = @_;
+
+        for my $attr_type (sort keys $xpath) {
+            my $lemma_prop = xpath_search($words[1], $xpath->{$attr_type});
+            for my $i (0,2) {
+                my $value = xpath_search($words[$i], $xpath->{$attr_type});
+                my $key = $i
+                  ? "($lemma_prop) ++ $value"
+                  : "$value ++ ($lemma_prop)";
+                $bi_stat->{$attr_type}{$key}++;
+            }
+        }
+    };
+
+    sub bi_output {
+        my($stat) = @_;
+
+        my $res;
+        for my $type (keys $stat) {
+            $res .= $type."\n";
+            my @bigrams =
+              sort {$stat->{$type}{$b} <=> $stat->{$type}{$a}}
+              keys $stat->{$type};
+            for my $i (0..$ui_params->{top_output}) {
+                $res .= $bigrams[$i].": ".$stat->{$type}{$bigrams[$i]}."\n";
+            }
+            $res .= "\n";
+        }
+
+        return $res;
+    }
+
     for my $ngram (@ngrams) {
         my @words = get_words_re($ngram);
         next unless scalar(@words) == $total_width;
-        $window_attrs->($attr_xp, 'left', @words[0..$lw-1]);
-        $window_attrs->($attr_xp, 'right', @words[$lw+1..$#words]);
+        # $window_attrs->($attr_xp, 'left', @words[0..$lw-1]);
+        # $window_attrs->($attr_xp, 'right', @words[$lw+1..$#words]);
+        $bigrams->($attr_xp, @words[$lw-1..$lw+1]);
     }
 
     my $res = "$lemma\n";
-    $res .= "Left window:\n";
-    $res .= window_stat($stat->{left});
-    $res .= "Right window:\n";
-    $res .= window_stat($stat->{right});
-    $res .= "\n";
+    # $res .= "Left window:\n";
+    # $res .= window_stat($stat->{left});
+    # $res .= "Right window:\n";
+    # $res .= window_stat($stat->{right});
+    # $res .= "\n";
+    $res .= bi_output($bi_stat);
 
     return $res;
 }
