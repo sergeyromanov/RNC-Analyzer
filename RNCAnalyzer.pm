@@ -138,6 +138,19 @@ sub window_stat {
     return $result;
 }
 
+sub get_ngrams {
+    my($fh, $lemma, $lw, $rw) = @_;
+
+    my @res;
+    while (my $line = <$fh>) {
+        my @contexts = get_raw_contexts($line, sum($lw, $rw, 1));
+        @contexts = grep no_stop_punctuation($_), @contexts;
+        push @res, grep is_target_ngram($_, $lemma, $lw, $rw), @contexts;
+    }
+
+    return @res;
+}
+
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
@@ -152,12 +165,7 @@ sub analyze_file {
     my($lw, $rw) = @{$ui_params->{window}}{qw<left right>};
     my $total_width = sum($lw, $rw, 1);
 
-    my @ngrams;
-    while (my $line = <$fh>) {
-        my @contexts = get_raw_contexts($line, $total_width);
-        @contexts = grep no_stop_punctuation($_), @contexts;
-        push @ngrams, grep is_target_ngram($_, $lemma, $lw, $rw), @contexts;
-    }
+    my @ngrams = get_ngrams($fh, $lemma, $lw, $rw);
 
     my $stat;
     my $window_attrs = sub {
