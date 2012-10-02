@@ -4,6 +4,7 @@ use 5.014;
 
 use open ':encoding(cp1251)';
 
+use Algorithm::Combinatorics qw(variations_with_repetition);
 use Data::Dumper;
 use List::Util qw(sum);
 use Log::Log4perl ();
@@ -151,6 +152,52 @@ sub get_ngrams {
     return @res;
 }
 
+sub parse_ngram {
+    my($xpath, $words) = @_;
+
+    my $ngram_struct;
+    for my $attr_type (keys $xpath) {
+        for my $i (0..$#$words) {
+            my $prop = xpath_search($words->[$i], $xpath->{$attr_type});
+            $ngram_struct->{$i}{$attr_type} = $prop;
+        }
+    }
+
+    return $ngram_struct;
+}
+
+sub gather_stat_for_variation {
+    my($var, $lw, $ngrams) = @_;
+
+    my $stat;
+    for my $ngram (@$ngrams) {
+        my $key;
+        for my $i (0..$#$var) {
+            my $prop = $ngram->{$i}{$var->[$i]} || '_';
+            $key .= ($i == $lw ? "($prop)" : $prop).'++'
+        }
+        $stat->{ $key =~ s(\+\+$)()r }++
+    }
+
+    return $stat;
+}
+
+sub prepare_res {
+    my($variation, $stat, $top, $lw) = @_;
+
+    my $res;
+    $variation->[$lw] = "($variation->[$lw])";
+    $res .= join '++', @$variation;
+    $res .= "\n";
+    my @sorted_keys = sort {$stat->{$b} <=> $stat->{$a}} keys $stat;
+    for my $i (0..$top-1) {
+        $res .= $stat->{$sorted_keys[$i]}."\t\t".$sorted_keys[$i]."\n";
+    }
+    $res .= "\n\n";
+
+    return $res;
+}
+
 sub analyze_file {
     my($fname, $ui_params, $lemma) = @_;
 
@@ -167,67 +214,18 @@ sub analyze_file {
 
     my @ngrams = get_ngrams($fh, $lemma, $lw, $rw);
 
-    my $stat;
-    my $window_attrs = sub {
-        my($xpath, $window, @words) = @_;
-
-        for my $i (0..$#words) {
-            for my $attr_type (sort keys $xpath) {
-                my $value = xpath_search($words[$i], $xpath->{$attr_type});
-                $stat->{$window}[$i]{$attr_type}{$value}++;
-            }
-        }
-    };
-
-    my $bi_stat;
-    my $bigrams = sub {
-        my($xpath, @words) = @_;
-
-        for my $attr_type (sort keys $xpath) {
-            my $lemma_prop = xpath_search($words[1], $xpath->{$attr_type});
-            for my $i (0,2) {
-                my $value = xpath_search($words[$i], $xpath->{$attr_type});
-                my $key = $i
-                  ? "($lemma_prop) ++ $value"
-                  : "$value ++ ($lemma_prop)";
-                $bi_stat->{$attr_type}{$key}++;
-            }
-        }
-    };
-
-    sub bi_output {
-        my($stat) = @_;
-
-        my $res;
-        for my $type (keys $stat) {
-            $res .= $type."\n";
-            my @bigrams =
-              sort {$stat->{$type}{$b} <=> $stat->{$type}{$a}}
-              keys $stat->{$type};
-            for my $i (0..$ui_params->{top_output}) {
-                $res .= $bigrams[$i].": ".$stat->{$type}{$bigrams[$i]}."\n";
-            }
-            $res .= "\n";
-        }
-
-        return $res;
-    }
-
+    my @ngram_struct;
     for my $ngram (@ngrams) {
         my @words = get_words_re($ngram);
         next unless scalar(@words) == $total_width;
-        # $window_attrs->($attr_xp, 'left', @words[0..$lw-1]);
-        # $window_attrs->($attr_xp, 'right', @words[$lw+1..$#words]);
-        $bigrams->($attr_xp, @words[$lw-1..$lw+1]);
+        push @ngram_struct, parse_ngram($attr_xp, \@words);
     }
-
-    my $res = "$lemma\n";
-    # $res .= "Left window:\n";
-    # $res .= window_stat($stat->{left});
-    # $res .= "Right window:\n";
-    # $res .= window_stat($stat->{right});
-    # $res .= "\n";
-    $res .= bi_output($bi_stat);
+    my @variations = variations_with_repetition([keys $attr_xp], $total_width);
+    my $res;
+    for my $variation (@variations) {
+        my $stat = gather_stat_for_variation($variation, $lw, \@ngram_struct);
+        $res .= prepare_res($variation, $stat, $ui_params->{top_output}, $lw);
+    }
 
     return $res;
 }
