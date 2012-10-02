@@ -3,6 +3,7 @@ use 5.014;
 use autodie;
 
 use Cwd qw(cwd);
+use File::Path qw(rmtree);
 use File::Spec;
 use Encode qw(encode decode);
 use Tkx;
@@ -103,6 +104,7 @@ sub files_dir {
         my $dict;
         $dict = LoadFile($dict_file) if -e $dict_file;
         my $cwd = cwd;
+        rmtree 'result';
         mkdir 'result';
         chdir $dir;
         my @files = glob '*.txt';
