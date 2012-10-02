@@ -121,24 +121,6 @@ sub xpath_search {
     return $value;
 }
 
-sub window_stat {
-    my($stat) = @_;
-
-    my $result;
-    # each element in @stat is a hash of hashes
-    for my $i (0..$#$stat) {
-        my $attrs = $stat->[$i];
-        for my $a_type (sort keys $attrs) {
-            my $a_vals = $attrs->{$a_type};
-            my @vals = sort {$a_vals->{$b} <=> $a_vals->{$a}} keys $a_vals;
-            $result .= join '', "\tmax $a_type in position ",
-              $i+1, ": ($vals[0]) => $a_vals->{$vals[0]}\n";
-        }
-    }
-
-    return $result;
-}
-
 sub get_ngrams {
     my($fh, $lemma, $lw, $rw) = @_;
 
