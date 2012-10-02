@@ -110,15 +110,15 @@ sub files_dir {
         $pbar->start();
         for my $fname (@files) {
             my $lemma = (split '\.', $fname)[0];
+            open my $fh, '>', File::Spec->catfile(
+                $cwd, 'result',  $lemma."_result.txt"
+            );
             if ($dict && $dict->{$lemma}) {
                 $lemma = $dict->{$lemma};
             }
             else {
                 $lemma = decode 'cp1251', $lemma;
             }
-            open my $fh, '>', File::Spec->catfile(
-                $cwd, 'result',  $lemma."_result.txt"
-            );
             say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, \%UI, $lemma));
             $progress++;
             Tkx::update();
