@@ -191,7 +191,10 @@ sub prepare_res {
     $res .= "\n";
     my @sorted_keys = sort {$stat->{$b} <=> $stat->{$a}} keys $stat;
     for my $i (0..$top-1) {
-        $res .= $stat->{$sorted_keys[$i]}."\t\t".$sorted_keys[$i]."\n";
+        my $part = $stat->{$sorted_keys[$i]} * 100 / sum values $stat;
+        $part =~ s!(?<=\.\d\d).*$!!;
+        $res .= $stat->{$sorted_keys[$i]}
+          ." ($part%)\t\t".$sorted_keys[$i]."\n";
     }
     $res .= "\n\n";
 
