@@ -1,7 +1,9 @@
 #!/usr/bin/env perl
 use 5.014;
+use autodie;
 
 use Cwd qw(cwd);
+use File::Spec;
 use Encode qw(encode decode);
 use Tkx;
 use Tkx::LabEntry;
@@ -100,7 +102,8 @@ sub files_dir {
         my $dict_file = cwd . '/translate.yml';
         my $dict;
         $dict = LoadFile($dict_file) if -e $dict_file;
-        open my $fh, '>', "result.txt";
+        my $cwd = cwd;
+        mkdir 'result';
         chdir $dir;
         my @files = glob '*.txt';
         $pbar->configure(-maximum => @files + 1);
@@ -113,6 +116,9 @@ sub files_dir {
             else {
                 $lemma = decode 'cp1251', $lemma;
             }
+            open my $fh, '>', File::Spec->catfile(
+                $cwd, 'result',  $lemma."_result.txt"
+            );
             say $fh encode('utf8', RNCAnalyzer::analyze_file($fname, \%UI, $lemma));
             $progress++;
             Tkx::update();
