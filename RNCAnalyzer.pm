@@ -99,7 +99,7 @@ sub is_target_ngram {
         my $word = '<w>.*?<\/w>';
         my $left_window = join '[^<]*', ($word)x$lw;
         my $right_window = join '[^<]*', ($word)x$rw;
-        my $re = qr{$left_window.+?<w>.+?"$lemma".+?</w>.+?$right_window}i;
+        my $re = qr{$left_window.+?<w>.+?['"]$lemma['"].+?</w>.+?$right_window}i;
 
         return $context =~ m!$re!;
     }
