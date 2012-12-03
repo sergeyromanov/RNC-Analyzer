@@ -8,12 +8,12 @@ use Algorithm::Combinatorics qw(variations_with_repetition);
 use Data::Dumper;
 use List::MoreUtils qw(uniq);
 use List::Util qw(sum);
-use Log::Log4perl ();
+# use Log::Log4perl ();
 use Try::Tiny qw(try catch);
 use XML::LibXML ();
 
-Log::Log4perl->init("log4perl.conf");
-my $log = Log::Log4perl->get_logger("RNCAnalyzer");
+# Log::Log4perl->init("log4perl.conf");
+# my $log = Log::Log4perl->get_logger("RNCAnalyzer");
 
 my $word_xp = [
     XML::LibXML::XPathExpression->new('/p/w'),
